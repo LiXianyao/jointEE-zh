@@ -59,34 +59,34 @@ class Sentence:
     def generateTokenList(self):
         valid = []
         tokens = []
-        tokens_loc = []
+        token_count = {}
         for i, word in enumerate(self.wordList):
             token = self.tokenizer.tokenize(word)
             tokens.extend(token)
             word_valid = [0] * len(token)
             word_valid[0] = 1  # only keep the first token of a word
             valid.extend(word_valid)
-            tokens_loc.extend([i + 1] * len(token))
+            token_count[i + 1] = len(token)
         #print("word len = {}, with token len = {}".format(len(self.wordList), len(tokens)))
         # keep the place for CLS and SEP
         token_word_len = valid.count(1)
         tokens = ["[CLS]"] + tokens + ["[SEP]"]
-        tokens_loc = [0] + tokens_loc + [token_word_len + 1]
-        valid = [1] + valid + [1]
-        valid_matrix = self.generateToken2WordProbMatrix(token_word_len, tokens_loc, valid, type=consts.TOKEN_MASK_TYPE)
+        token_count[0] = 1
+        token_count[token_word_len + 1] = 1
+        valid_matrix = self.generateToken2WordProbMatrix(token_word_len, token_count, tokens, type=consts.TOKEN_MASK_TYPE)
         #segment_ids = [0] * len(tokens)
         return tokens, valid_matrix, token_word_len
 
-    def generateToken2WordProbMatrix(self, token_word_len, tokens_loc, valid, type='average'):
+    def generateToken2WordProbMatrix(self, token_word_len, token_count, tokens, type='average'):
         start = 0
-        matrix = np.zeros((len(valid), token_word_len + 2), dtype=np.float)
+        matrix = np.zeros((token_word_len + 2, len(tokens)), dtype=np.float)
         for i in range(token_word_len + 2):
-            token_len = tokens_loc.count(i)
+            token_len = token_count[i]
             if type == 'average' and token_len > 1:
-                matrix[start + 1 : start + token_len, i] = 1./ (2 * (token_len - 1) )
-                matrix[start, i] = 0.5
+                matrix[i, start + 1: start + token_len] = 1./ (2 * (token_len - 1) )
+                matrix[i, start] = 0.5
             else:  # type=='first'
-                matrix[start, i] = 1.
+                matrix[i, start] = 1.
             start += token_len
         return matrix.tolist()
 

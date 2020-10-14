@@ -62,6 +62,30 @@ def enum_anchor_repr_fmtA(word_repr, len_idx, anchor_num, previous_anchor_idx, b
     anchor_repr = word_repr[batch_idx, idx]
     return anchor_idx, anchor_repr
 
+
+# 前一位、当前Anchor位置（最多1 + 3）
+def enum_anchor_repr_Before(word_repr, len_idx, anchor_num, previous_anchor_idx, batch_idx, batch_size):
+    if anchor_num % 2 == 1:  # 补前位
+        front_padding = (anchor_num + 1) // 2  #1补1位， 3时候，前面补2位，5时候补3位...
+        z = torch.zeros_like(len_idx)
+        z[front_padding:] = len_idx[: -front_padding]
+        anchor_idx = torch.cat([z, previous_anchor_idx], dim=-1)
+    else:
+        tail_padding = anchor_num // 2  # 2时候，后面补1位， 4时候补两位...
+        z = torch.zeros_like(len_idx)
+        z[: -tail_padding] = len_idx[tail_padding:]
+        anchor_idx = torch.cat([previous_anchor_idx, z], dim=-1)  # [seqlen, anchor_len]
+    anchor_repr_list = [anchor_idx[:, 0].unsqueeze(1), anchor_idx[:, 1].unsqueeze(1)]  # 至少两位
+    if anchor_num == 2:
+        anchor_repr_list += [anchor_idx[:, -1].unsqueeze(1)]
+    elif anchor_num >= 3:  # first current and tail
+        anchor_repr_list += [len_idx, anchor_idx[:, -1].unsqueeze(1)]
+
+    idx = torch.cat(anchor_repr_list, dim=-1). \
+        unsqueeze(0).expand(batch_size, anchor_idx.size()[0], len(anchor_repr_list))
+    anchor_repr = word_repr[batch_idx, idx]
+    return anchor_idx, anchor_repr
+
 def get_anchor_repr(hyps, anchor_const, BATCH_SIZE, SEQ_LEN, repr_dim, representation):
     """construct representation for classification"""
     if hyps["anchor_repr"] == 'ALL':
@@ -71,10 +95,14 @@ def get_anchor_repr(hyps, anchor_const, BATCH_SIZE, SEQ_LEN, repr_dim, represent
         print("Anchor repr use FMT") if consts.ONECHANCE else None
         anchor_repr_depth = 3
         enum_anchor_func = enum_anchor_repr_fmt
-    else:
+    elif hyps["anchor_repr"] == 'FMTA':
         print("Anchor repr use FMTA") if consts.ONECHANCE else None
         anchor_repr_depth = 3
         enum_anchor_func = enum_anchor_repr_fmtA
+    elif hyps["anchor_repr"] == 'Before':
+        print("Anchor repr use Before") if consts.ONECHANCE else None
+        anchor_repr_depth = min(4, anchor_const + 1)
+        enum_anchor_func = enum_anchor_repr_Before
 
     anchor_representation = torch.zeros(BATCH_SIZE, SEQ_LEN, anchor_const, anchor_repr_depth,
                                                repr_dim).cuda()
