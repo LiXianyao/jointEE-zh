@@ -5,6 +5,7 @@ from collections import Counter, OrderedDict
 import six
 import torch
 from torchtext.data import Field, Pipeline, Dataset
+import copy
 
 class SparseField(Field):
     def process(self, batch, device, train):
@@ -90,7 +91,7 @@ class TokenField(Field):
             vocab = list(tokenizer.get_vocab().keys())  # use and only use the token w2i in bert
         self.vocab = self.vocab_cls(counter, specials=vocab, **kwargs)
 
-    def pad(self, minibatch):  # 对一个二维（每行不定长进行padding）,需要batch padding和 len padding
+    def pad(self, minibatch):  # 对一个二维（每行不定长进行padding）,需要len padding
         minibatch = list(minibatch)
         if not self.sequential:  # 已经序列化过的数值数据，不用padding
             return minibatch
@@ -111,6 +112,7 @@ class TokenField(Field):
                     list(x[-max_len:] if self.truncate_first else x[:max_len]) +
                     [self.pad_token] * max(0, max_len - len(x))
                 )
+            assert len(padded[-1]) - max(0, max_len - len(x)) == min(len(x), max_len)
             lengths.append(len(padded[-1]) - max(0, max_len - len(x)))
 
         if self.include_lengths:
@@ -183,7 +185,7 @@ class MultiTokenField(Field):
             if tok is not None))
         self.vocab = self.vocab_cls(counter, specials=specials, **kwargs)
 
-    def pad(self, minibatch):  # 对一个二维（每行不定长进行padding）,需要batch padding和 len padding
+    def pad(self, minibatch):  # 对一个3维（每行不定长进行padding）,需要2维 padding和 3维padding
         minibatch = list(minibatch)
         if not self.sequential:  # 已经序列化过的数值数据，不用padding
             return minibatch
@@ -242,7 +244,8 @@ class MultiTokenTensorField(MultiTokenField):
             return minibatch
 
         max_sen_len = max(len(x) for x in minibatch)
-        max_unit_len = max(max([len(xx) for xx in x]) for x in minibatch)
+        max_unit_len = max(len(x[0]) for x in minibatch)
+
         if self.fix_length is not None:  # 没有指定长度，取batch中最长
             if self.fix_length[0] is not None:
                 max_sen_len = self.fix_length[0]
@@ -252,21 +255,26 @@ class MultiTokenTensorField(MultiTokenField):
         padded, lengths = [], []
         pad_line = [self.pad_token] * max_unit_len
         #print("max_sen_len = {}, max_unit_len = {}, pad_line is{}".format(max_sen_len, max_unit_len, pad_line, type(pad_line)))
-        for x in minibatch:
+        for row in minibatch:
             #print("Before Padding is {}".format(x))
-            lengths.append([])
+            #lengths.append([])
+            lengths.append(len(row[0]))
+            x = copy.deepcopy(row)
             for idx in range(len(x)):
-                lengths[-1] += [len(x[idx])]
+                #lengths[-1] += [len(x[idx])]
                 x[idx] = x[idx] + [self.pad_token] * max(0, max_unit_len - len(x[idx]))
+                if (len(x[idx]) != max_unit_len):
+                    print(len(x[idx]), max_unit_len, max(0, max_unit_len - len(x[idx])))
+                assert len(x[idx]) == max_unit_len
+
             x = list(x[-max_sen_len:] if self.truncate_first else x[:max_sen_len])
             if self.pad_first:
                 padded.append([pad_line] * max(0, max_sen_len - len(x)) + x)
-                lengths[-1] = [0] * max(0, max_sen_len - len(x)) + lengths[-1]
+                #lengths[-1] = [0] * max(0, max_sen_len - len(x)) + lengths[-1]
             else:
                 padded.append(x + [pad_line] * max(0, max_sen_len - len(x)))
-                lengths[-1] += [0] * max(0, max_sen_len - len(x))
-            #print("after padding is {}".format(padded[-1]))
-            #print("length is {}".format(lengths))
+                #lengths[-1] += [0] * max(0, max_sen_len - len(x))
+            assert len(padded[-1]) == max_sen_len
 
         if self.include_lengths:
             return (padded, lengths) # length = batch * sen_len

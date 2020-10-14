@@ -19,12 +19,14 @@ class Joint3EEModel(Model):
         self.hyperparams = copy.deepcopy(hyps)
         self.device = device
         self.bertConfig = kwargs["config"]
-
         self.bertRepresentationLayer = BertRepresentationLayer(hyps, bert_model, self.bertConfig)
+
+
         bert_output_size = self.bertConfig.hidden_size
         repr_len = bert_output_size
 
         self.linear = nn.Linear(bert_output_size, hyps["trigger_label_weight"].size()[0], bias=True)
+        self.dropout = nn.Dropout(hyps["dropout"])
         init_linear_(self.linear)
 
         if hyps["ed_cls_mode"] == 'crf':
@@ -74,7 +76,7 @@ class Joint3EEModel(Model):
         #print(w_len)
         trigger_labels_mask = self.get_mask_tensor(trigger_labels, trigger_labels_len, depth=2)  # 对trigger的mask
 
-        logits = self.linear(trigger_hidden)
+        logits = self.linear(self.dropout(trigger_hidden))
 
         if self.hyperparams["ed_cls_mode"] == "crf":
             loss_ed_cls = self.event_CRF.forward(logits, trigger_labels)
@@ -87,7 +89,7 @@ class Joint3EEModel(Model):
 
         #(batch_size, seq_len, out) -》( batch, seqlen,  anchor_num, 2)
         loss_emd, emd_det_label, loss_emd_cls, emd_cls_label = self.entityMentionDetectionLayer.forward(
-                seq_mask=trigger_labels_mask, cnn_representation=None, word_representation=entity_hidden,
+                seq_mask=trigger_labels_mask, cnn_representation=None, word_representation=self.dropout(entity_hidden),
                 entity_anchor_labels=entity_anchor_labels, entity_anchor_loc=entity_anchor_loc,
                 entity_anchor_type=entity_anchor_type)
 
@@ -106,10 +108,6 @@ class Joint3EEModel(Model):
 
             trigger_label_i2s=trigger_label_i2s, trigger_label_s2i=trigger_label_s2i, entity_label_i2s=entity_label_i2s,
             batch_golden_events=batch_golden_events)
-        """
-        loss_ae, predicted_events = self.argumentRoleClsLayer.no_forward(
-            seq_mask=trigger_labels_mask)
-        """
 
         consts.ONECHANCE = False
         trigger_candidates_weight = [{} for _ in range(batch_size)]

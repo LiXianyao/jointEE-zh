@@ -27,14 +27,14 @@ class EpochRunner:
 
     def lrdecay(self, epoch_num, lr, rho, constructor, prefix=""):
         lr = lr / (1 + rho * epoch_num)
-        print("{}lr of epoch {} is {}".format(prefix, epoch_num, lr))
+        print("{}lr of epoch {} is {}".format(prefix, epoch_num, round(lr, 8)))
         return constructor(lr=lr)
 
     def warm_up_lrdecay(self, epoch_num, lr, rho, constructor, hyps, prefix=""):
         lr = lr / (1 + rho * epoch_num)
         if epoch_num >= hyps["warmup_epoch"]:
             lr *= hyps["warmup"]
-        print("{}lr of epoch {} is {}".format(prefix, epoch_num, lr))
+        print("{}lr of epoch {} is {}".format(prefix, epoch_num, round(lr, 8)))
         return constructor(lr=lr)
 
     def run_one_epoch(self, model, data_iter, MAX_STEP, epoch_num, need_backward, tester, hyps, device, save_output, maxnorm):
@@ -74,6 +74,7 @@ class EpochRunner:
         output_trigger_weight_json = []
         batch_cnt = 0
         for batch in data_iter:
+            batch_cnt += 1
             if need_backward:
                 optimizer.zero_grad()
                 bert_optimizer.zero_grad()
@@ -89,7 +90,18 @@ class EpochRunner:
 
             token_segments = torch.zeros(tokens.size(), dtype=torch.long)
             word_segments = torch.zeros(postags.size(), dtype=torch.long)
-            tokens_mask = batch.TOKENSMASK  # [batch, maxlen, maxlen]
+            tokens_mask, token_mask_len = batch.TOKENSMASK  # [batch, maxlen, maxlen]
+
+            if tokens.size()[-1] != tokens_mask.size()[-1]:
+                print("tokens size = {}, token_mask size is {}".format(
+                    tokens.size(), tokens_mask.size()
+                ))
+                print(w_len)
+                print(t_len)
+                print(token_mask_len)
+                print(words)
+                print(tokens)
+                print(tokens_mask)
             #print("tokens_mask size is{}, contents are:\n{}".format(tokens_mask.size(), tokens_mask))
 
             trigger_seq_tag, trigger_seq_len = batch.TRIGGERLABEL
@@ -173,28 +185,29 @@ class EpochRunner:
                     event_json = self.output_event_jsons(words, w_len, event, predicted_events)
                     output_event_json.extend(event_json)
 
-            batch_cnt += 1
             if need_backward:
                 loss.backward()
                 if 1e-6 < maxnorm and model.parameters_requires_grad_clipping() is not None:  # 梯度裁剪
                     torch.nn.utils.clip_grad_norm_(model.parameters_requires_grad_clipping(), maxnorm)
                 optimizer.step()
                 bert_optimizer.step()
-
+            """
             if batch_cnt % max(MAX_STEP // 5, 1) == 0:
                 other_information = 'Iter[{}] loss: {:.6f}'.\
                     format(batch_cnt, loss.item())
                 progressbar(batch_cnt, MAX_STEP, other_information)
 
-        """epoch finished, save output if necessary"""
+        epoch finished, save output if necessary"""
         if save_output:
-            self.save_token_output(output_path=save_output, type="trigger_anchor", all_anchor=all_trigger_anchor)
-            self.save_token_output(output_path=save_output, type="trigger_cls", all_anchor=all_trigger_cls)
-            self.save_token_output(output_path=save_output, type="entity_anchor", all_anchor=all_entity_anchor)
-            self.save_json_output(output_path=save_output, type="argument_role", json_data=output_event_json)
-            self.save_json_output(output_path=save_output, type="trigger_att_weight", json_data=output_trigger_weight_json)
-            self.save_token_output(output_path=save_output, type="entity_cls", all_anchor=all_entity_cls)
-
+            if hyps["ED_enable"]:
+                self.save_token_output(output_path=save_output, type="trigger_anchor", all_anchor=all_trigger_anchor)
+                self.save_token_output(output_path=save_output, type="trigger_cls", all_anchor=all_trigger_cls)
+            if hyps["EMD_enable"]:
+                self.save_token_output(output_path=save_output, type="entity_anchor", all_anchor=all_entity_anchor)
+                self.save_json_output(output_path=save_output, type="argument_role", json_data=output_event_json)
+            if hyps["ARG_enable"]:
+                self.save_json_output(output_path=save_output, type="trigger_att_weight", json_data=output_trigger_weight_json)
+                self.save_token_output(output_path=save_output, type="entity_cls", all_anchor=all_entity_cls)
 
         ed_loss /= batch_cnt
         edc_loss /= batch_cnt
