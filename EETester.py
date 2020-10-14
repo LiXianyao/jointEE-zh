@@ -146,10 +146,8 @@ class EETester:
                         ct[anchor_idx] += 1
 
         if output:
-            print(u"golden {}number is {}, predict {} number is {}, correct number is :{}".format(calculate_type, p1["sum"],
-                                                                                                  calculate_type, p2["sum"],
-                                                                                                  ct["sum"]))
-            print(u"correct number for each anchor is: {}".format(ct))
+            print(u"golden {0}number is {1}, predict {0} number is {2}, correct number is :{3}, correct number for each anchor is: {4}".format(
+                calculate_type, p1["sum"], p2["sum"], ct["sum"], ct.items()))
             if use_vocab:
                 sk_p, sk_r, sk_f = self._classification(ay, ay_, label_i2s)
             else:

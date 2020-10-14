@@ -1,5 +1,6 @@
 import os
 from math import ceil
+import json
 
 from torchtext.data import BucketIterator
 from collections import defaultdict
@@ -160,8 +161,8 @@ class Trainer:
         return edf, edcf, emdf, emdcf, argf
 
     def phase_record(self, step, phase, type, loss, p, r, f, epoch_num, save_out=None):
-        print("Epoch {}'s {} Phase:{}-{} p: {} r: {} f1: {}, loss={}".format(epoch_num, step, type, phase, p[0], r[0], f[0], loss))
-        print("Epoch {}'s {} Phase:{}-{} p: {} r: {} f1: {} ---Sklearn metrics".format(epoch_num, step, type, phase, p[1], r[1], f[1]))
+        print("Epoch {}'s {} Phase:{}-{} p: {} r: {} f1: {}, loss={}".format(epoch_num, step, type, phase, p[0], r[0], f[0], loss)) if r[0] > 0. else None
+        #print("Epoch {}'s {} Phase:{}-{} p: {} r: {} f1: {} ---Sklearn metrics".format(epoch_num, step, type, phase, p[1], r[1], f[1])) if r[0] > 0. else None
         if not save_out:
             self.args.writer[phase].add_scalar('{}/{}/loss'.format(step, type), loss, epoch_num)
             self.args.writer[phase].add_scalar('{}/{}/p'.format(step, type), p[0], epoch_num)
@@ -189,7 +190,7 @@ class Trainer:
         last_100e_percentage = {type_: {key:
                                       round(100. * value/100, 0) for key, value in dict_.items()}
                           for type_, dict_ in last_100e_score_dict.items()}
-        print("Epoch 0 to {}'s test statistic report is {}".format(epoch_num, all_percentage))
+        print("Epoch 0 to {}'s test statistic report is {}".format(epoch_num, json.dumps(all_percentage, indent=2)))
         print("Last 100  Epoch's test statistic report is :"
               "\ned-det : {}".format(sorted(last_100e_percentage["ed-det"].items())),
               "\ned-cls : {}".format(sorted(last_100e_percentage["ed-cls"].items())),
