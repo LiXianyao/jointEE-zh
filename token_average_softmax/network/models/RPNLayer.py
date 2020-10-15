@@ -38,7 +38,7 @@ class RPNLayer(nn.Module):
         batchfy_rpn_prob = logits.view(BATCH_SIZE, SEQ_LEN, self.anchor_num, self.class_num)  # batch, seqlen,  anchor_num, 2
 
         predict_label = torch.max(batchfy_rpn_prob, dim=3)[1]
-        postive_predict_idx = torch.nonzero(predict_label == 1)
+        postive_predict_idx = torch.nonzero(predict_label > 0)
         padding_idx = torch.nonzero(anchor_labels == -1)
 
         def remove_padding_idx_and_shuffle(input_idx, sample_num=None, shuffle=True):
@@ -57,7 +57,7 @@ class RPNLayer(nn.Module):
             return input_idx
 
         if self.training:
-            positive_idx = shuffle_idx(torch.nonzero(anchor_labels == 1), self.sample_num)  # ground_truth
+            positive_idx = shuffle_idx(torch.nonzero(anchor_labels > 0), self.sample_num)  # ground_truth
             # index of anchor_labels where is positive，
             pos_num = positive_idx.size()[0]
 

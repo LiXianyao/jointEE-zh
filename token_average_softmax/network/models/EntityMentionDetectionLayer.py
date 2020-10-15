@@ -21,7 +21,13 @@ class EntityMentionDetectionLayer(nn.Module):
                                                    anchor_num=consts.ENTITY_ANCHOR_NUM,
                                                    sample_num=hyps["entity_sampled_number"],
                                                    weight=torch.FloatTensor([1., hyps["entity_det_weight"]]))
-        
+        if self.hyperparams["EMD_cls_enable"]:
+            self.entity_classification_layer = RPNLayer(hyps, input_size=self.entity_reprensentation_len,
+                                                        anchor_num=consts.ENTITY_ANCHOR_NUM,
+                                                        sample_num=hyps["entity_sampled_number"],
+                                                        weight=torch.FloatTensor(hyps["entity_label_weight"]),
+                                                        class_num=hyps['entity_label_num']
+                                                        )
         self.dropout = nn.Dropout(hyps["dropout"])
 
     def no_forward(self, seq_mask):
@@ -49,25 +55,12 @@ class EntityMentionDetectionLayer(nn.Module):
             candidates_idx = torch.nonzero(entity_anchor_labels == 1)
 
         if self.hyperparams["EMD_cls_enable"]:
-            loss_emd_cls, cls_label, entity_candidates_repr, entity_candidates_label, entity_candidates_predict, \
-            entity_candidates_num, entity_candidates_len, entity_candidates_mask, entity_candidates_loc = \
-                self.entity_classification_layer(word_mask=seq_mask,
-                                                  word_repr=reg_entity_representation,
-                                                  candidates_idx=candidates_idx,
-                                                  anchor_loc=entity_anchor_loc,
-                                                  anchor_label=entity_anchor_labels,
-                                                  anchor_cls=entity_anchor_type)
+            loss_emd_cls, cls_label, _ = self.entity_classification_layer(
+                reg_entity_representation, entity_anchor_type)
         else:
             loss_emd_cls, cls_label = zero_loss, zero_label
-            #entity_candidates_repr, entity_candidates_label, entity_candidates_num, entity_candidates_len, entity_candidates_mask, \
-            #    entity_candidates_loc = self.entity_candidates_layer(reg_entity_representation, candidates_idx,
-            #                                                             entity_anchor_loc, entity_anchor_type,
-            #                                                             batch_candidate_num=self.max_candidate_num,
-            #                                                             nonzero=True)
 
-        return loss_emd, detect_label, loss_emd_cls, cls_label  # , reg_entity_representation, \
-            #entity_candidates_repr, entity_candidates_label, entity_candidates_num, entity_candidates_len, \
-            #entity_candidates_mask, entity_candidates_loc
+        return loss_emd, detect_label, loss_emd_cls, cls_label
 
 
     def sizeof(self, name, tensor):
