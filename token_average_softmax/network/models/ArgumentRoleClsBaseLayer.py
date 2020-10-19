@@ -31,9 +31,11 @@ class ArgumentRoleClsLayer(nn.Module):
         # entity_type Embedding Layer
         self.entity_cls_embeddings = OneHotEmbeddingLayer(embedding_size=self.entity_cls_num,
                                                            dropout=hyps["dropout"])
-        input_size = input_size * 2 + self.trigger_cls_num  # + self.entity_cls_num
-        self.linear = torch.nn.Linear(in_features=input_size, out_features=self.arg_cls_num, bias=True)
-        init_linear_(self.linear)
+
+        self.linear1 = torch.nn.Linear(in_features=input_size * 2 + self.trigger_cls_num, out_features=input_size, bias=True)
+        self.linear2 = torch.nn.Linear(in_features=input_size, out_features=self.arg_cls_num, bias=True)
+        init_linear_(self.linear1)
+        init_linear_(self.linear2)
 
         #self.sizeof("rpn linear", self.linear.weight)
         self.loss = nn.MultiMarginLoss(p=1, margin=5, weight=weight)
@@ -118,8 +120,10 @@ class ArgumentRoleClsLayer(nn.Module):
                                      entity_type_emb=None, ae_input=ae_input)
                     ae_logits_key.append((sid, t_sid, t_eid, trigger_type, e_sid, e_eid, entity_type))
         if len(ae_input) != 0:  # the linear layer forbid the input of size 0 at dim 0
-            ae_hidden = self.dropout(torch.stack(ae_input, dim=0))
-            ae_logits = self.linear(ae_hidden)
+            ae_hidden = torch.stack(ae_input, dim=0)
+            ae_logits = self.dropout(torch.tanh(self.linear1(ae_hidden)))
+            ae_logits = self.linear2(ae_logits)
+
             print("ae_logits 's size is {}".format(
                 ae_logits.size())) if consts.ONECHANCE else None
 
