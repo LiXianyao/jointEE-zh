@@ -41,8 +41,9 @@ class BertRepresentationLayer(nn.Module):
                                              token_head_mask=token_head_mask)
         entity_hidden = self.pick_one_layer(bert_encode_layers, layer_num=-self.hyperparams["bert_layers"] + 1,
                                              token_head_mask=token_head_mask)
-
-        return trigger_hidden, entity_hidden  #, logits
+        sequence_output = bert_encode_layers[1][:, 0]
+        print("size of sequence_output is {}".format(sequence_output.size())) if consts.ONECHANCE else None
+        return trigger_hidden, entity_hidden, sequence_output
 
     def pick_one_layer(self, bert_encode_layers, layer_num, token_head_mask):
         hidden = bert_encode_layers[layer_num]  # (x_len, 4*768)
