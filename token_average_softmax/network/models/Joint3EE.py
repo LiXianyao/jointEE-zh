@@ -83,15 +83,13 @@ class Joint3EEModel(Model):
         trigger_labels_mask = self.get_mask_tensor(trigger_labels, trigger_labels_len, depth=2)  # 对trigger的mask
 
         sequence_output = torch.zeros([batch_size, max_len, feat_dim]).cuda() + sequence_output.view(batch_size, 1, feat_dim)
+
         trigger_hidden = torch.cat([trigger_hidden, sequence_output], dim=-1)
-        print("sequence_output 's size is {}".format(
-            sequence_output.size())) if consts.ONECHANCE else None
-        print("trigger_hidden 's size is {}".format(
-            trigger_hidden.size())) if consts.ONECHANCE else None
         trigger_hidden = self.dropout(trigger_hidden)
         trigger_hidden = self.dropout(torch.tanh(self.linear_t1(trigger_hidden)))
         logits = self.linear_t2(trigger_hidden)
-        
+
+        entity_hidden = torch.cat([entity_hidden, sequence_output], dim=-1)
         entity_hidden = self.dropout(entity_hidden)
         entity_hidden = self.dropout(torch.tanh(self.linear_e1(entity_hidden)))
 
