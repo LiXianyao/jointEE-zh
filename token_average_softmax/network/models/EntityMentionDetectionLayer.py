@@ -60,7 +60,7 @@ class EntityMentionDetectionLayer(nn.Module):
         else:
             loss_emd_cls, cls_label = zero_loss, zero_label
 
-        return loss_emd, detect_label, loss_emd_cls, cls_label
+        return loss_emd, detect_label, candidates_idx, loss_emd_cls, cls_label
 
 
     def sizeof(self, name, tensor):
