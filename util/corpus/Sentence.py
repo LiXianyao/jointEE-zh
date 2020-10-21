@@ -127,7 +127,7 @@ class Sentence:
                 if anchor_label == 1:
                     loc_map[(sid, eid)] = (idx, kid)
                 if anchor_label == -1:
-                    anchors[-1].append([-1, -1])  # out of boundary takes -1
+                    anchors[-1].append([0, 0])  # out of boundary takes -1
                     anchor_label = 0
                 else:
                     anchors[-1].append([sid + 1, eid + 1])  # CLS take place of the idx 0
@@ -163,7 +163,7 @@ class Sentence:
         for entityJson in entitiesJsonList:
             start = entityJson["start"]
             end = entityJson["end"]
-            if end > self.word_length: continue
+            if end >= self.word_length: continue
 
             if end - start > consts.ENTITY_ANCHOR_NUM:  # ignore the entities that longer than we predict
                 continue
@@ -214,7 +214,7 @@ class Sentence:
         golden_dict = {}
         for eventJson in eventsJson:
             triggerJson = eventJson["trigger"]
-            if triggerJson["end"] > self.word_length:
+            if triggerJson["end"] >= self.word_length:
                 continue
             t_start = triggerJson["start"]
             t_end = triggerJson["end"]
@@ -247,7 +247,7 @@ class Sentence:
             triggerJson = eventJson["trigger"]
             start = triggerJson["start"]
             end = triggerJson["end"]
-            if end > self.word_length: continue
+            if end >= self.word_length: continue
 
             if end - start > consts.TRIGGER_ANCHOR_NUM:  # ignore the entities that longer than we predict
                 continue
