@@ -18,7 +18,7 @@ https://github.com/LiXianyao/ace2005-preprocessing-With-Chinese-Branch-/tree/chi
 目前，使用albert_chinese_tiny的baseline表现为
 |          | P    |  R   |F1    | 
 |-------   |--------------|--------------|------------|
-| Trigger Classification     | 64.94        | 64.23           | 64.59           |          
-| Entity Mention Detection      | 73.16        | 81.32           | 77.02           |          
-| Argument Role Prediction    |       |         |           |          
+| Trigger Classification     | 66.2        | 67.14           | 66.67           |          
+| Entity Mention Detection      | 80.86        | 80.44           | 80.65          |          
+| Argument Role Prediction    | 35.57   |    38.19     |     36.83      |          
 
