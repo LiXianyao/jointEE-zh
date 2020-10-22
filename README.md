@@ -15,10 +15,10 @@ https://github.com/LiXianyao/ace2005-preprocessing-With-Chinese-Branch-/tree/chi
 
 涉及到是否采用标题句子、以哪些符号断句、所标注的事件/触发词是否在同个断句内等策略，数字可能有一定浮动。ACE数据集上的划分只有按文件为单位，未见具体的sentence level处理
 
-目前，使用albert_chinese_tiny的baseline表现为
+目前，使用albert_chinese_tiny的baseline表现为(优先取ed和arg效果更好的epoch)
 |          | P    |  R   |F1    | 
 |-------   |--------------|--------------|------------|
-| Trigger Classification     | 66.2        | 67.14           | 66.67           |          
-| Entity Mention Detection      | 80.86        | 80.44           | 80.65          |          
-| Argument Role Prediction    | 35.57   |    38.19     |     36.83      |          
+| Trigger Classification     | 65.19        | 67.49           | 66.32           |          
+| Entity Mention Detection      | 77.63        | 78.13           | 77.88          |          
+| Argument Role Prediction    | 34.17   |    41.72     |     37.57      |          
 
