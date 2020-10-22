@@ -84,9 +84,9 @@ class Joint3EEModel(Model):
 
         sequence_output = torch.zeros([batch_size, max_len, feat_dim]).cuda() + sequence_output.view(batch_size, 1, feat_dim)
 
-        trigger_hidden = torch.cat([trigger_hidden, sequence_output], dim=-1)
+        #trigger_hidden = torch.cat([trigger_hidden, sequence_output], dim=-1)
         trigger_hidden = self.dropout(trigger_hidden)
-        trigger_hidden = self.dropout(torch.tanh(self.linear_t1(trigger_hidden)))
+        #trigger_hidden = self.dropout(torch.tanh(self.linear_t1(trigger_hidden)))
         logits = self.linear_t2(trigger_hidden)
 
         entity_hidden = torch.cat([entity_hidden, sequence_output], dim=-1)
