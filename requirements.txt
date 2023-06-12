@@ -2,7 +2,7 @@ pytorch-transformers==1.0
 torch==1.0.0
 torchtext==0.3.1
 tensorboardX==1.9
-transformers==2.5.1
+transformers==4.30.0
 pytorch-crf==0.7.2
 seqeval==0.0.12
 sklearn==0.0
